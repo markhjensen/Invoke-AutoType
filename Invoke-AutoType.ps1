@@ -24,14 +24,27 @@ function Escape-SendKeys {
     )
     switch ($char) {
         '{' { return '{{}' }
-        '}' { return '{}}' } 
+        '}' { return '{}}' }
         '+' { return '{+}' }
-        '^' { return '{^}' }
         '%' { return '{%}' }
         '~' { return '{~}' }
         '(' { return '{(}' }
         ')' { return '{)}' }
+        '^' { return '{^}' }
         default { return $char }
+    }
+}
+
+function Sleep-Countdown {
+
+    param (
+        [int]$sleepcountdown
+    )
+
+    while ($sleepcountdown -gt 0) {
+        Write-Host "Typing begins in: $sleepcountdown"
+        Start-Sleep -Seconds 1
+        $sleepcountdown--
     }
 }
 
@@ -49,28 +62,39 @@ function SendKeys {
     } else {
         $type = Read-Host "String to type"
     }
+
+    $typelength = $type.Length
     $sleepmschar = 1
     $sleepcountdown = Get-ValidInteger -prompt "Delay before start (Default 5)" -default 5
+    Sleep-Countdown -sleepcountdown $sleepcountdown
 
-    while ($sleepcountdown -gt 0) {
-        Write-Host "Typing begins in: $sleepcountdown"
-        Start-Sleep -Seconds 1
-        $sleepcountdown--
-    }
     Write-Host "hacking"
 
     foreach ($char in $type.ToCharArray()) {
+        Write-Host "$char $typelength"
         # Escape special char
         $escapedChar = Escape-SendKeys -char $char
 
-        # Send char
-        [System.Windows.Forms.SendKeys]::SendWait($escapedChar)
+        # Define problematic dead keys
+        $manualKeys = @("{^}")
 
-        # Sleep 5 ms mellem char
-        Start-Sleep -Milliseconds $sleepmschar
+        # Send char
+        if ($manualKeys -contains $escapedChar) {
+            $null = Read-Host "Please manually type '^' (Shift+^, then space) in the console, then press Enter to continue..."
+            if ($typelength -gt 1) {
+                Sleep-Countdown -sleepcountdown $sleepcountdown
+            }
+        } else {
+            [System.Windows.Forms.SendKeys]::SendWait($escapedChar)
+
+            # Sleep 1 ms mellem char
+            Start-Sleep -Milliseconds $sleepmschar
+        }
+        $typelength--
     }
 
     Sendkeys
+
 }
 
-SendKeys
+SendKeys 
